@@ -461,50 +461,68 @@ int main(int argc, char *argv[])
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
     
+   col = background;
    double pixel_center_x = cam->wl + j * du;
    double pixel_center_y = cam->wt + i * dv;
-   
-   double ss_du = du / SS_SIZE;
-   double ss_dv = dv / SS_SIZE;
-   
-   struct colourRGB ss_col;
-   ss_col = background;
-   
-   // Uniform sampling around the pixel
-   // Sampling frequency defined by SS_SIZE
-   for (double x = pixel_center_x - du / 2.0 + ss_du / 2.0; x < pixel_center_x + du / 2.0; x += ss_du) {
-    for (double y = pixel_center_y - dv / 2.0 + ss_dv / 2.0; y > pixel_center_y + dv / 2.0; y += ss_dv) {
-     pc.px = x;
-     pc.py = y;
-     pc.pz = cam->f;
-     pc.pw = 1;
-     matVecMult(cam->C2W, &pc);
-     pc.pw = 1;
-     d.px = pc.px - e.px;
-     d.py = pc.py - e.py;
-     d.pz = pc.pz - e.pz;
-     d.pw = 0;
-     ray = newRay(&pc, &d);
-     col = background;
-     rayTrace(ray, 0, &col, NULL);
-     free(ray);
-     ss_col.R += col.R;
-     ss_col.G += col.G;
-     ss_col.B += col.B;
+    
+   if (antialiasing) {
+    double ss_du = du / SS_SIZE;
+    double ss_dv = dv / SS_SIZE;
+    
+    struct colourRGB ss_col;
+    ss_col = background;
+    
+    // Uniform sampling around the pixel
+    // Sampling frequency defined by SS_SIZE
+    for (double x = pixel_center_x - du / 2.0 + ss_du / 2.0; x < pixel_center_x + du / 2.0; x += ss_du) {
+     for (double y = pixel_center_y - dv / 2.0 + ss_dv / 2.0; y > pixel_center_y + dv / 2.0; y += ss_dv) {
+      pc.px = x;
+      pc.py = y;
+      pc.pz = cam->f;
+      pc.pw = 1;
+      matVecMult(cam->C2W, &pc);
+      pc.pw = 1;
+      d.px = pc.px - e.px;
+      d.py = pc.py - e.py;
+      d.pz = pc.pz - e.pz;
+      d.pw = 0;
+      ray = newRay(&pc, &d);
+      ss_col = background;
+      rayTrace(ray, 0, &ss_col, NULL);
+      free(ray);
+      col.R += ss_col.R;
+      col.G += ss_col.G;
+      col.B += ss_col.B;
+     }
     }
+    col.R /= SS_SIZE * SS_SIZE;
+    col.G /= SS_SIZE * SS_SIZE;
+    col.B /= SS_SIZE * SS_SIZE;
+   } else {
+    pc.px = pixel_center_x;
+    pc.py = pixel_center_y;
+    pc.pz = cam->f;
+    pc.pw = 1;
+    matVecMult(cam->C2W, &pc);
+    pc.pw = 1;
+    d.px = pc.px - e.px;
+    d.py = pc.py - e.py;
+    d.pz = pc.pz - e.pz;
+    d.pw = 0;
+    ray = newRay(&pc, &d);
+    col = background;
+    rayTrace(ray, 0, &col, NULL);
+    free(ray);
    }
-   ss_col.R /= SS_SIZE * SS_SIZE;
-   ss_col.G /= SS_SIZE * SS_SIZE;
-   ss_col.B /= SS_SIZE * SS_SIZE;
    
    //printf("(%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f)\n", pc.px, pc.py, pc.pz, d.px, d.py, d.pz);
    //if (col.R != 0 || col.G != 0 || col.B != 0) {
     //printf("%.2f,%.2f,%.2f\n", ss_col.R, ss_col.G, ss_col.B);
    //}
    
-   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3] = (int)(255.0 * ss_col.R);
-   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 1] = (int)(255.0 * ss_col.G);
-   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 2] = (int)(255.0 * ss_col.B);
+   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3] = (int)(255.0 * col.R);
+   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 1] = (int)(255.0 * col.G);
+   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 2] = (int)(255.0 * col.B);
   } // end for i
  } // end for j
 
