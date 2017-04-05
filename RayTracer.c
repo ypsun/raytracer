@@ -25,7 +25,9 @@
 struct object3D *object_list;
 struct pointLS *light_list;
 int MAX_DEPTH;
-
+ 
+#define SS_SIZE 8.0 // Super sample size n*n
+ 
 void buildScene(void)
 {
  // Sets up all objects in the scene. This involves creating each object,
@@ -458,26 +460,49 @@ int main(int argc, char *argv[])
     // TO DO - complete the code that should be in this loop to do the
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
-   pc.px = cam->wl + j * du;
-   pc.py = cam->wt + i * dv;
-   pc.pz = cam->f;
-   pc.pw = 1;
-   matVecMult(cam->C2W, &pc);
-   pc.pw = 1;
-   d.px = pc.px - e.px;
-   d.py = pc.py - e.py;
-   d.pz = pc.pz - e.pz;
-   d.pw = 0;
-   ray = newRay(&pc, &d);
-   col = background;
-   rayTrace(ray, 0, &col, NULL);
-   //printf("(%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f)\n", pc.px, pc.py, pc.pz, d.px, d.py, d.pz);
-   if (col.R != 0 || col.G != 0 || col.B != 0) {
-    //printf("%.2f,%.2f,%.2f\n", col.R, col.G, col.B);
+    
+   double pixel_center_x = cam->wl + j * du;
+   double pixel_center_y = cam->wt + i * dv;
+   
+   double ss_du = du / SS_SIZE;
+   double ss_dv = dv / SS_SIZE;
+   
+   struct colourRGB ss_col;
+   ss_col = background;
+   
+   for (double x = pixel_center_x - du / 2.0 + ss_du / 2.0; x < pixel_center_x + du / 2.0; x += ss_du) {
+    for (double y = pixel_center_y - dv / 2.0 + ss_dv / 2.0; y > pixel_center_y + dv / 2.0; y += ss_dv) {
+     pc.px = x;
+     pc.py = y;
+     pc.pz = cam->f;
+     pc.pw = 1;
+     matVecMult(cam->C2W, &pc);
+     pc.pw = 1;
+     d.px = pc.px - e.px;
+     d.py = pc.py - e.py;
+     d.pz = pc.pz - e.pz;
+     d.pw = 0;
+     ray = newRay(&pc, &d);
+     col = background;
+     rayTrace(ray, 0, &col, NULL);
+     free(ray);
+     ss_col.R += col.R;
+     ss_col.G += col.G;
+     ss_col.B += col.B;
+    }
    }
-   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3] = (int)(255.0 * col.R);
-   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 1] = (int)(255.0 * col.G);
-   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 2] = (int)(255.0 * col.B);
+   ss_col.R /= SS_SIZE * SS_SIZE;
+   ss_col.G /= SS_SIZE * SS_SIZE;
+   ss_col.B /= SS_SIZE * SS_SIZE;
+   
+   //printf("(%.2f,%.2f,%.2f) (%.2f,%.2f,%.2f)\n", pc.px, pc.py, pc.pz, d.px, d.py, d.pz);
+   //if (col.R != 0 || col.G != 0 || col.B != 0) {
+    //printf("%.2f,%.2f,%.2f\n", ss_col.R, ss_col.G, ss_col.B);
+   //}
+   
+   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3] = (int)(255.0 * ss_col.R);
+   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 1] = (int)(255.0 * ss_col.G);
+   ((unsigned char *)im->rgbdata)[i * sx * 3 + j * 3 + 2] = (int)(255.0 * ss_col.B);
   } // end for i
  } // end for j
 
