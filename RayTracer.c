@@ -470,6 +470,8 @@ int main(int argc, char *argv[])
    struct colourRGB ss_col;
    ss_col = background;
    
+   // Uniform sampling around the pixel
+   // Sampling frequency defined by SS_SIZE
    for (double x = pixel_center_x - du / 2.0 + ss_du / 2.0; x < pixel_center_x + du / 2.0; x += ss_du) {
     for (double y = pixel_center_y - dv / 2.0 + ss_dv / 2.0; y > pixel_center_y + dv / 2.0; y += ss_dv) {
      pc.px = x;
