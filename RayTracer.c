@@ -82,14 +82,14 @@ void buildScene(void)
  insertObject(o,&object_list);			// Insert into object list
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
+ o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,24);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
 
- o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,6);
+ o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,24);
  Scale(o,.5,2.0,1.0);
  RotateZ(o,PI/1.5);
  Translate(o,1.75,1.25,5.0);
@@ -154,6 +154,15 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // TO DO: Implement this function. Refer to the notes for
  // details about the shading model.
  //////////////////////////////////////////////////////////////
+ 
+ // No illumination for light source
+ if (obj->isLightSource) {
+  col->R = R;
+  col->G = G;
+  col->B = B;
+  return;
+ }
+ 
  struct point3D p_temp;
  struct point3D n_temp;
  double lambda_temp;
@@ -161,14 +170,13 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  double b_temp;
  struct object3D *obj_temp;
  
- 
  // Local components
  struct pointLS *l = light_list;
  while (l != NULL) {
-  double factor = 0;
-  
   // Ambient component
-  factor = obj->alb.ra;
+  tmp_col.R = R * l->col.R * obj->alb.ra;
+  tmp_col.G = G * l->col.G * obj->alb.ra;
+  tmp_col.B = B * l->col.B * obj->alb.ra;
   
   // Check shadow
   struct ray3D ray_light; // Ray from intersection point to light source
@@ -178,14 +186,16 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   ray_light.d.pw = 0;
   findFirstHit(&ray_light, &lambda_temp, obj, &obj_temp, &p_temp, &n_temp, &a_temp, &b_temp);
   
-  // Check that no object is between light source and intersection point
-  if (lambda_temp < 0 || lambda_temp > 1) {
+  // If no object is between light source and intersection point
+  if (lambda_temp < 0 || lambda_temp > 1 || obj_temp->isLightSource) {
    normalize(&ray_light.d);
    
    // Diffuse component
    //printf("%.2f,%.2f,%.2f\n", n->px, n->py, n->pz);
    //printf("%.2f\n", dot(n, &ray_light.d));
-   factor += obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
+   tmp_col.R += R * l->col.R * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
+   tmp_col.G += G * l->col.G * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
+   tmp_col.B += B * l->col.B * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
    
    // Specular component
    struct point3D m = *n;
@@ -199,11 +209,10 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
    struct point3D d = ray->d;
    normalize(&d);
    d.pw = 0;
-   factor += obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
+   tmp_col.R += l->col.R * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
+   tmp_col.G += l->col.G * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
+   tmp_col.B += l->col.B * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
   }
-  col->R += l->col.R * factor;
-  col->B += l->col.B * factor;
-  col->G += l->col.G * factor;
   l = l->next;
  }
  
@@ -216,13 +225,13 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   m_s.pz *= f;
   addVectors(&ray->d, &m_s);
   m_s.pw = 0;
-  rayTrace(newRay(p, &m_s), depth + 1, &tmp_col, obj);
+  rayTrace(newRay(p, &m_s), depth + 1, col, obj);
  }
 
  // Be sure to update 'col' with the final colour computed here!
- col->R = std::min(R * (col->R + tmp_col.R), 1.0);
- col->B = std::min(B * (col->B + tmp_col.B), 1.0);
- col->G = std::min(G * (col->G + tmp_col.G), 1.0);
+ col->R = std::min(obj->alb.rg * col->R + tmp_col.R, 1.0);
+ col->B = std::min(obj->alb.rg * col->B + tmp_col.B, 1.0);
+ col->G = std::min(obj->alb.rg * col->G + tmp_col.G, 1.0);
  
  return;
 
