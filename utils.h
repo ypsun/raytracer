@@ -20,6 +20,7 @@
 #include <math.h>
 #include <assert.h>
 #include <algorithm>
+#include <cmath>
 
 #ifndef __utils_header
 #define __utils_header

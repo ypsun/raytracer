@@ -198,7 +198,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  /////////////////////////////////
  struct ray3D ray_prime;
  rayTransform(ray, &ray_prime, plane);
- if (ray_prime.d.pz < 0.0000001) {
+ if (std::abs(ray_prime.d.pz) < 0.0000001) {
   // Transformed ray is parallel to canonical plane.
   *lambda = -1;
   return;
