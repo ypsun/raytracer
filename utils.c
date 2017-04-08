@@ -374,7 +374,22 @@ void addAreaLight(float sx, float sy, float nx, float ny, float nz,\
   // TO DO: (Assignment 4!)
   // Implement this function to enable area light sources
   /////////////////////////////////////////////////////
-
+  struct object3D *o;
+  o=newPlane(-1, -1, -1, -1, r, g, b, 1, -1 , -1);	// No illumination for light sources
+  o->isLightSource = 1;
+  Scale(o, sx, sy, 1);
+  printf("x-rotation: %f\n", atan2(nz, ny) / PI * 180);
+  RotateX(o, PI / 2.0 + atan2(nz, ny));
+  printmatrix(o->T);
+  if (nz < 0) {
+   RotateY(o, PI);
+  }
+  printf("y-rotation: %f\n", atan2(nx, nz) / PI * 180);
+  RotateY(o, atan2(nx, nz));
+  printmatrix(o->T);
+  Translate(o, tx, ty, tz);
+  invert(&o->T[0][0],&o->Tinv[0][0]);
+  insertObject(o,o_list);
 }
 
 ///////////////////////////////////

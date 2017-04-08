@@ -103,6 +103,8 @@ void buildScene(void)
  p.pw=1;
  l=newPLS(&p,.95,.95,.95);
  insertPLS(l,&light_list);
+ 
+ addAreaLight(5, 5, 0.1, 1, 0, 0, -5, 20, 20, 20, .95, .95, .95, &object_list, &light_list);
 
  // End of simple scene for Assignment 3
  // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
@@ -334,10 +336,6 @@ int main(int argc, char *argv[])
  struct point3D g;
  struct point3D up;
  double du, dv;			// Increase along u and v directions for pixel coordinates
- struct point3D pc,d;		// Point structures to keep the coordinates of a pixel and
-				// the direction or a ray
- struct ray3D *ray;		// Structure to keep the ray from e to a pixel
- struct colourRGB col;		// Return colour for raytraced pixels
  struct colourRGB background;   // Background colour
  int i,j;			// Counters for pixel coordinates
  unsigned char *rgbIm;
@@ -460,6 +458,7 @@ int main(int argc, char *argv[])
  fprintf(stderr,"\n");
 
  fprintf(stderr,"Rendering row: ");
+ #pragma omp parallel for private(i)
  for (j=0;j<sx;j++)		// For each of the pixels in the image
  {
   fprintf(stderr,"%d/%d\n",j,sx);
@@ -469,6 +468,10 @@ int main(int argc, char *argv[])
     // TO DO - complete the code that should be in this loop to do the
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
+   struct ray3D *ray;		// Structure to keep the ray from e to a pixel
+   struct colourRGB col;		// Return colour for raytraced pixels
+   struct point3D pc,d;		// Point structures to keep the coordinates of a pixel and
+   // the direction or a ray
     
    col = background;
    double pixel_center_x = cam->wl + j * du;
