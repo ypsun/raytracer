@@ -198,7 +198,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  /////////////////////////////////
  struct ray3D ray_prime;
  rayTransform(ray, &ray_prime, plane);
- if (std::abs(ray_prime.d.pz) < 0.0000001) {
+ if (std::abs(ray_prime.d.pz) < EPSILON) {
   // Transformed ray is parallel to canonical plane.
   *lambda = -1;
   return;
@@ -350,15 +350,11 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
   getRgb(img, i+1, j+1, &R4, &G4, &B4);
  }
 
- //*R = (1.0-u)*(1.0-v)*R1 + u*(1.0-v)*R2 + (1.0-u)*v*R3 + u*v*R4;
- //*G = (1.0-u)*(1.0-v)*G1 + u*(1.0-v)*G2 + (1.0-u)*v*G3 + u*v*G4;
- //*B = (1.0-u)*(1.0-v)*B1 + u*(1.0-v)*B2 + (1.0-u)*v*B3 + u*v*B4;
+ *R = (1.0-u)*(1.0-v)*R1 + u*(1.0-v)*R2 + (1.0-u)*v*R3 + u*v*R4;
+ *G = (1.0-u)*(1.0-v)*G1 + u*(1.0-v)*G2 + (1.0-u)*v*G3 + u*v*G4;
+ *B = (1.0-u)*(1.0-v)*B1 + u*(1.0-v)*B2 + (1.0-u)*v*B3 + u*v*B4;
  //printf("%f,%f,%f\n",*R,*G,*B);
- 
- *R = R1;
- *G = G1;
- *B = B1;
- 
+
  return;
 }
 
