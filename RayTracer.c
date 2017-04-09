@@ -73,21 +73,40 @@ void buildScene(void)
 						// completely opaque (alpha=1). The refraction index is
 						// meaningless since alpha=1
  Scale(o,6,6,1);				// Do a few transforms...
- RotateZ(o,PI/1.20);
  RotateX(o,PI*0.25);
- Translate(o,0,-3,10);
+ Translate(o,0,-3,12);
  invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
 						// and store the inverse
 						// transform for this object!
  insertObject(o,&object_list);			// Insert into object list
  loadTexture(o,"checkered.ppm");
 
- // Let's add a couple spheres
- o=newSphere(.05,.05,.05,.75,.2,.2,.2,0.5,1.5,24);
- Translate(o, 0,-2,5);
+ // Mirror
+ o=newPlane(.55,.55,.25,.95,.05,.05,.05,1,1,2);
+ Scale(o,1.5,1.5,1);
+ RotateY(o,PI*0.2);
+ RotateX(o,PI*0.25);
+ Translate(o,2.7,-4,7.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
+ 
 
+ // Transparent sphere
+ o=newSphere(.05,.05,.05,.75,.2,.2,.2,0.5,1.5,24);
+ Translate(o, -2,-2,7);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ insertObject(o,&object_list);
+ 
+ // Texture sphere
+ o=newSphere(.55,.95,.95,.75,.75,.95,.55,1,1,24);
+ RotateX(o,PI*0.5);
+ RotateY(o,PI*2.25);
+ RotateZ(o,PI/1.5);
+ Translate(o,-.5,.75,7);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ insertObject(o,&object_list);
+ loadTexture(o,"planet.ppm");
+ 
  // Insert a single point light source.
  p.px=0;
  p.py=15.5;
@@ -530,7 +549,7 @@ int main(int argc, char *argv[])
  //        for Assignment 4 you need to create your own
  //        *interesting* scene.
  ///////////////////////////////////////////////////
- buildScene_A3();		// Create a scene. This defines all the
+ buildScene();		// Create a scene. This defines all the
 			// objects in the world of the raytracer
 
  //////////////////////////////////////////
