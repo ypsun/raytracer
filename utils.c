@@ -374,22 +374,78 @@ void addAreaLight(float sx, float sy, float nx, float ny, float nz,\
   // TO DO: (Assignment 4!)
   // Implement this function to enable area light sources
   /////////////////////////////////////////////////////
+  
   struct object3D *o;
   o=newPlane(-1, -1, -1, -1, r, g, b, 1, -1 , -1);	// No illumination for light sources
   o->isLightSource = 1;
   Scale(o, sx, sy, 1);
-  printf("x-rotation: %f\n", atan2(nz, ny) / PI * 180);
-  RotateX(o, PI / 2.0 + atan2(nz, ny));
-  printmatrix(o->T);
-  if (nz < 0) {
-   RotateY(o, PI);
-  }
-  printf("y-rotation: %f\n", atan2(nx, nz) / PI * 180);
-  RotateY(o, atan2(nx, nz));
-  printmatrix(o->T);
+
+  // Base normal to Area normal
+  struct point3D baseNormal;
+  baseNormal.px = 0;
+  baseNormal.py = 0;
+  baseNormal.pz = -1;
+  baseNormal.pw = 0;
+  struct point3D areaNormal;
+  areaNormal.px = nx;
+  areaNormal.py = ny;
+  areaNormal.pz = nz;
+  areaNormal.pw = 0;
+  normalize(&areaNormal);
+  printf("True normal: %.2f,%.2f,%.2f\n", areaNormal.px,areaNormal.py,areaNormal.pz);
+  
+  struct point3D *axis = cross(&baseNormal, &areaNormal);
+  normalize(axis);
+  printf("Axis: %.2f,%.2f,%.2f\n", axis->px,axis->py,axis->pz);
+  
+  double angle = acos(dot(&baseNormal, &areaNormal));
+  printf("Angle: %.2f\n", angle / PI * 180);
+  
+  double normalTrans[4][4];
+  memset(&normalTrans[0][0],0,16*sizeof(double));
+  // Reference: https://en.wikipedia.org/wiki/Rotation_matrix
+  normalTrans[0][0] = cos(angle) + axis->px * axis->px * (1 - cos(angle));
+  normalTrans[0][1] = axis->px * axis->py * (1 - cos(angle)) - axis->pz * sin(angle);
+  normalTrans[0][2] = axis->px * axis->pz * (1 - cos(angle)) + axis->py * sin(angle);
+  normalTrans[1][0] = axis->px * axis->py * (1 - cos(angle)) + axis->pz * sin(angle);
+  normalTrans[1][1] = cos(angle) + axis->py * axis->py * (1 - cos(angle));
+  normalTrans[1][2] = axis->py * axis->pz * (1 - cos(angle)) - axis->px * sin(angle);
+  normalTrans[2][0] = axis->px * axis->pz * (1 - cos(angle)) - axis->py * sin(angle);
+  normalTrans[2][1] = axis->py * axis->pz * (1 - cos(angle)) + axis->px * sin(angle);
+  normalTrans[2][2] = cos(angle) + axis->pz * axis->pz * (1 - cos(angle));
+  normalTrans[3][3] = 1;
+  free(axis);
+  
+  struct point3D t = baseNormal;
+  matVecMult(normalTrans, &t);
+  printf("Calculated normal: %.2f,%.2f,%.2f\n", t.px,t.py,t.pz);
+  
+  // End of normal transformation
+  
+  
+  matMult(normalTrans, o->T);
   Translate(o, tx, ty, tz);
   invert(&o->T[0][0],&o->Tinv[0][0]);
   insertObject(o,o_list);
+  
+  
+  // Add point light sources
+  int c = 0;
+  double du = 2.0 / lx;
+  double dv = -2.0 / ly;
+  for (double i = -1.0 + 0.5 * du; i <= 1.0; i += du) {
+   c++;
+   for (double j = 1.0 + 0.5 * dv; j >= -1.0; j += dv) {
+    struct point3D p;
+    p.px = i;
+    p.py = j;
+    p.pz = 0;
+    p.pw = 1;
+    matVecMult(o->T, &p);
+    struct pointLS *l = newPLS(&p,r,g,b);
+    insertPLS(l,l_list);
+   }
+  }
 }
 
 ///////////////////////////////////

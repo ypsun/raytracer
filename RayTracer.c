@@ -102,9 +102,9 @@ void buildScene(void)
  p.pz=-5.5;
  p.pw=1;
  l=newPLS(&p,.95,.95,.95);
- insertPLS(l,&light_list);
+ //insertPLS(l,&light_list);
  
- addAreaLight(5, 5, 0.1, 1, 0, 0, -5, 20, 20, 20, .95, .95, .95, &object_list, &light_list);
+ addAreaLight(2, 2, 0, -1, 1, 0, 15.5, -5.5, 10, 10, .95, .95, .95, &object_list, &light_list);
 
  // End of simple scene for Assignment 3
  // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
@@ -171,14 +171,17 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  double a_temp;
  double b_temp;
  struct object3D *obj_temp;
+ int l_count = 0;
  
  // Local components
  struct pointLS *l = light_list;
  while (l != NULL) {
+  l_count++;
+  
   // Ambient component
-  tmp_col.R = R * l->col.R * obj->alb.ra;
-  tmp_col.G = G * l->col.G * obj->alb.ra;
-  tmp_col.B = B * l->col.B * obj->alb.ra;
+  tmp_col.R += R * l->col.R * obj->alb.ra;
+  tmp_col.G += G * l->col.G * obj->alb.ra;
+  tmp_col.B += B * l->col.B * obj->alb.ra;
   
   // Check shadow
   struct ray3D ray_light; // Ray from intersection point to light source
@@ -215,6 +218,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
    tmp_col.G += l->col.G * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
    tmp_col.B += l->col.B * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
   }
+  
   l = l->next;
  }
  
@@ -231,9 +235,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  }
 
  // Be sure to update 'col' with the final colour computed here!
- col->R = std::min(obj->alb.rg * col->R + tmp_col.R, 1.0);
- col->B = std::min(obj->alb.rg * col->B + tmp_col.B, 1.0);
- col->G = std::min(obj->alb.rg * col->G + tmp_col.G, 1.0);
+ col->R = std::min(obj->alb.rg * col->R + tmp_col.R / l_count, 1.0);
+ col->B = std::min(obj->alb.rg * col->B + tmp_col.B / l_count, 1.0);
+ col->G = std::min(obj->alb.rg * col->G + tmp_col.G / l_count, 1.0);
  
  return;
 
@@ -461,7 +465,7 @@ int main(int argc, char *argv[])
  #pragma omp parallel for private(i)
  for (j=0;j<sx;j++)		// For each of the pixels in the image
  {
-  fprintf(stderr,"%d/%d\n",j,sx);
+  //fprintf(stderr,"%d/%d\n",j,sx);
   for (i=0;i<sx;i++)
   {
     ///////////////////////////////////////////////////////////////////
