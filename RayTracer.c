@@ -80,24 +80,24 @@ void buildScene(void)
 						// and store the inverse
 						// transform for this object!
  insertObject(o,&object_list);			// Insert into object list
- loadTexture(o,"universe.ppm");
+ //loadTexture(o,"universe.ppm");
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,0.5,0.5,24);
+ o=newSphere(.05,.95,.35,.35,1,.25,.25,0.5,1.5,24);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
- loadTexture(o,"venus.ppm");
+ //loadTexture(o,"venus.ppm");
 
- o=newSphere(.05,.95,.95,.75,.75,.95,.55,0.5,1.5,24);
+ o=newSphere(.05,.95,.95,.75,.75,.95,.55,0.5,0.5,24);
  Scale(o,.5,2.0,1.0);
  RotateZ(o,PI/1.5);
  Translate(o,1.75,1.25,5.0);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
- loadTexture(o,"planet.ppm");
+ //loadTexture(o,"planet.ppm");
 
  // Insert a single point light source.
  p.px=0;
@@ -109,6 +109,97 @@ void buildScene(void)
  
  addAreaLight(2, 2, 0, -1, 1, 0, 15.5, -5.5, 10, 10, .95, .95, .95, &object_list, &light_list);
 
+ // End of simple scene for Assignment 3
+ // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
+ // or, you can create code to handle arbitrary triangles and then define objects as surface meshes.
+ //
+ // Remember: A lot of the quality of your scene will depend on how much care you have put into defining
+ //           the relflectance properties of your objects, and the number and type of light sources
+ //           in the scene.
+}
+
+
+void buildScene_A3(void)
+{
+ // Sets up all objects in the scene. This involves creating each object,
+ // defining the transformations needed to shape and position it as
+ // desired, specifying the reflectance properties (albedos and colours)
+ // and setting up textures where needed.
+ // Light sources must be defined, positioned, and their colour defined.
+ // All objects must be inserted in the object_list. All light sources
+ // must be inserted in the light_list.
+ //
+ // To create hierarchical objects:
+ //   Copy the transform matrix from the parent node to the child, and
+ //   apply any required transformations afterwards.
+ //
+ // NOTE: After setting up the transformations for each object, don't
+ //       forget to set up the inverse transform matrix!
+ 
+ struct object3D *o;
+ struct pointLS *l;
+ struct point3D p;
+ 
+ ///////////////////////////////////////
+ // TO DO: For Assignment 3 you have to use
+ //        the simple scene provided
+ //        here, but for Assignment 4 you
+ //        *MUST* define your own scene.
+ //        Part of your mark will depend
+ //        on how nice a scene you
+ //        create. Use the simple scene
+ //        provided as a sample of how to
+ //        define and position objects.
+ ///////////////////////////////////////
+ 
+ // Simple scene for Assignment 3:
+ // Insert a couple of objects. A plane and two spheres
+ // with some transformations.
+ 
+ // Let's add a plane
+ // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
+ o=newPlane(.05,.75,.05,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ // should see some reflections if all is done properly.
+ // Colour is close to cyan, and currently the plane is
+ // completely opaque (alpha=1). The refraction index is
+ // meaningless since alpha=1
+ Scale(o,6,6,1);				// Do a few transforms...
+ RotateZ(o,PI/1.20);
+ RotateX(o,PI/2.25);
+ Translate(o,0,-3,10);
+ invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+ // and store the inverse
+ // transform for this object!
+ insertObject(o,&object_list);			// Insert into object list
+ loadTexture(o,"universe.ppm");
+ 
+ // Let's add a couple spheres
+ o=newSphere(.05,.95,.35,.35,1,.25,.25,0.5,1.5,24);
+ Scale(o,.75,.5,1.5);
+ RotateY(o,PI/2);
+ Translate(o,-1.45,-2,3.5);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ insertObject(o,&object_list);
+ //loadTexture(o,"venus.ppm");
+ 
+ o=newSphere(.05,.95,.95,.75,.75,.95,.55,0.5,0.5,24);
+ Scale(o,.5,2.0,1.0);
+ RotateZ(o,PI/1.5);
+ Translate(o,1.75,-2,5.0);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ insertObject(o,&object_list);
+ //loadTexture(o,"planet.ppm");
+ 
+ // Insert a single point light source.
+ p.px=0;
+ p.py=15.5;
+ p.pz=-5.5;
+ p.pw=1;
+ l=newPLS(&p,.95,.95,.95);
+ insertPLS(l,&light_list);
+ 
+ addAreaLight(2, 2, 0, -1, 1, 0, 15.5, -5.5, 10, 10, .95, .95, .95, &object_list, &light_list);
+ 
  // End of simple scene for Assignment 3
  // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
  // or, you can create code to handle arbitrary triangles and then define objects as surface meshes.
@@ -189,10 +280,6 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  while (l != NULL) {
   l_count++;
   
-  if (obj == prevRefrObj) {
-   //scale(n, -1);
-  }
-  
   // Ambient component
   local_col.R += R * l->col.R * obj->alb.ra;
   local_col.G += G * l->col.G * obj->alb.ra;
@@ -239,6 +326,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  if (depth < MAX_DEPTH) {
   // Global (secondary) component
   // Specular
+  
   struct point3D m_s = *n;
   double f = -2.0 * dot(&ray->d, n);
   scale(&m_s, f);
@@ -249,6 +337,11 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   rayTrace(r, depth + 1, &spec_col, NULL, prevRefrObj);
   free(r);
   
+  struct point3D x = *n;
+  if (obj != NULL && obj == prevRefrObj) {
+   scale(&x, -1);
+  }
+  
   /*
   // Refractive
   if (obj->alpha < 1) {
@@ -258,32 +351,38 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     r_index_from = 1;
     r_index_to = obj->r_index;
     o = obj;
+    //printf("1\n");
    } else if (prevRefrObj == obj) {
     // exitting current object
     r_index_from = obj->r_index;
     r_index_to = 1;
     o = NULL;
+    //printf("2\n");
    } else {
     // entering another object
     r_index_from = prevRefrObj->r_index;
     r_index_to = obj->r_index;
     o = obj;
+    //printf("3\n");
    }
-   
+   //printf("n:%f,%f,%f\n",x.px,x.py,x.pz);
    struct point3D d = ray->d;
    normalize(&d);
+   d.pw = 0;
    double z; // value under square root
-   z = 1-r_index_from*r_index_from*(1-pow(dot(&d,n),2.0))/(r_index_to*r_index_to);
+   z = 1-r_index_from*r_index_from*(1-pow(dot(&d,&x),2.0))/(r_index_to*r_index_to);
    if (z >= 0) {
-    struct point3D q = *n;
-    scale(&q, dot(&d, n));
+    //printf("d:%f,%f,%f\n",d.px,d.py,d.pz);
+    struct point3D q = x;
+    scale(&q, dot(&d, &x));
     struct point3D t = d;
     subVectors(&q, &t);
     scale(&t, (r_index_from/r_index_to));
-    q = *n;
+    q = x;
     scale(&q, sqrt(z));
     subVectors(&q, &t);
     t.pw = 0;
+    //printf("t:%f,%f,%f\n",t.px,t.py,t.pz);
     r = newRay(p, &t);
     addEpsilon(r);
     rayTrace(r, depth + 1, &refract_col, NULL, o);
@@ -293,6 +392,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  }
 
  // Be sure to update 'col' with the final colour computed here!
+ //printf("refract_col:%f,%f,%f\n",refract_col.R,refract_col.G,refract_col.B);
  col->R = std::min(obj->alb.rg * (spec_col.R + (1.0-obj->alpha)*refract_col.R) + local_col.R / l_count, 1.0);
  col->B = std::min(obj->alb.rg * (spec_col.B + (1.0-obj->alpha)*refract_col.G) + local_col.B / l_count, 1.0);
  col->G = std::min(obj->alb.rg * (spec_col.G + (1.0-obj->alpha)*refract_col.B) + local_col.G / l_count, 1.0);
@@ -365,12 +465,13 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  struct point3D p;	// Intersection point
  struct point3D n;	// Normal at intersection
  struct colourRGB I;	// Colour returned by shading function
+ //printf("%d\n",depth);
 
  if (depth>MAX_DEPTH)	// Max recursion depth reached. Return invalid colour.
  {
-  col->R=-1;
-  col->G=-1;
-  col->B=-1;
+  col->R=0;
+  col->G=0;
+  col->B=0;
   return;
  }
 
