@@ -83,7 +83,7 @@ void buildScene(void)
  loadTexture(o,"universe.ppm");
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,24);
+ o=newSphere(.05,.95,.35,.35,1,.25,.25,0.5,0.5,24);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
@@ -91,7 +91,7 @@ void buildScene(void)
  insertObject(o,&object_list);
  loadTexture(o,"venus.ppm");
 
- o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,24);
+ o=newSphere(.05,.95,.95,.75,.75,.95,.55,0.5,1.5,24);
  Scale(o,.5,2.0,1.0);
  RotateZ(o,PI/1.5);
  Translate(o,1.75,1.25,5.0);
@@ -118,7 +118,7 @@ void buildScene(void)
  //           in the scene.
 }
 
-void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col)
+void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col, struct object3D *prevRefrObj)
 {
  // This function implements the shading model as described in lecture. It takes
  // - A pointer to the first object intersected by the ray (to get the colour properties)
@@ -182,11 +182,16 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  double b_temp;
  struct object3D *obj_temp;
  int l_count = 0;
+ struct ray3D *r;
  
  // Local components
  struct pointLS *l = light_list;
  while (l != NULL) {
   l_count++;
+  
+  if (obj == prevRefrObj) {
+   //scale(n, -1);
+  }
   
   // Ambient component
   local_col.R += R * l->col.R * obj->alb.ra;
@@ -198,6 +203,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   ray_light.p0 = *p;
   ray_light.d = l->p0;
   subVectors(p, &ray_light.d);
+  addEpsilon(&ray_light);
   ray_light.d.pw = 0;
   findFirstHit(&ray_light, &lambda_temp, obj, &obj_temp, &p_temp, &n_temp, &a_temp, &b_temp);
   
@@ -235,21 +241,61 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   // Specular
   struct point3D m_s = *n;
   double f = -2.0 * dot(&ray->d, n);
-  m_s.px *= f;
-  m_s.py *= f;
-  m_s.pz *= f;
+  scale(&m_s, f);
   addVectors(&ray->d, &m_s);
   m_s.pw = 0;
-  rayTrace(newRay(p, &m_s), depth + 1, &spec_col, obj);
+  r = newRay(p, &m_s);
+  addEpsilon(r);
+  rayTrace(r, depth + 1, &spec_col, NULL, prevRefrObj);
+  free(r);
   
+  /*
   // Refractive
-  
+  if (obj->alpha < 1) {
+   struct object3D *o;
+   double r_index_from, r_index_to;
+   if (prevRefrObj == NULL) {
+    r_index_from = 1;
+    r_index_to = obj->r_index;
+    o = obj;
+   } else if (prevRefrObj == obj) {
+    // exitting current object
+    r_index_from = obj->r_index;
+    r_index_to = 1;
+    o = NULL;
+   } else {
+    // entering another object
+    r_index_from = prevRefrObj->r_index;
+    r_index_to = obj->r_index;
+    o = obj;
+   }
+   
+   struct point3D d = ray->d;
+   normalize(&d);
+   double z; // value under square root
+   z = 1-r_index_from*r_index_from*(1-pow(dot(&d,n),2.0))/(r_index_to*r_index_to);
+   if (z >= 0) {
+    struct point3D q = *n;
+    scale(&q, dot(&d, n));
+    struct point3D t = d;
+    subVectors(&q, &t);
+    scale(&t, (r_index_from/r_index_to));
+    q = *n;
+    scale(&q, sqrt(z));
+    subVectors(&q, &t);
+    t.pw = 0;
+    r = newRay(p, &t);
+    addEpsilon(r);
+    rayTrace(r, depth + 1, &refract_col, NULL, o);
+    free(r);
+   }
+  }*/
  }
 
  // Be sure to update 'col' with the final colour computed here!
- col->R = std::min(obj->alb.rg * spec_col.R + local_col.R / l_count, 1.0);
- col->B = std::min(obj->alb.rg * spec_col.B + local_col.B / l_count, 1.0);
- col->G = std::min(obj->alb.rg * spec_col.G + local_col.G / l_count, 1.0);
+ col->R = std::min(obj->alb.rg * (spec_col.R + (1.0-obj->alpha)*refract_col.R) + local_col.R / l_count, 1.0);
+ col->B = std::min(obj->alb.rg * (spec_col.B + (1.0-obj->alpha)*refract_col.G) + local_col.B / l_count, 1.0);
+ col->G = std::min(obj->alb.rg * (spec_col.G + (1.0-obj->alpha)*refract_col.B) + local_col.G / l_count, 1.0);
  
  return;
 
@@ -299,7 +345,7 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  //printf("done\n");
 }
 
-void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object3D *Os)
+void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object3D *Os, struct object3D *prevRefrObj)
 {
  // Ray-Tracing function. It finds the closest intersection between
  // the ray and any scene objects, calls the shading function to
@@ -335,7 +381,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
  if (lambda > 0) {
   //printf("a,b:%f,%f\n",a,b);
-  rtShade(obj, &p, &n, ray, depth, a, b, col);
+  rtShade(obj, &p, &n, ray, depth, a, b, col, prevRefrObj);
  }
 }
 
@@ -517,7 +563,7 @@ int main(int argc, char *argv[])
       d.pw = 0;
       ray = newRay(&pc, &d);
       ss_col = background;
-      rayTrace(ray, 0, &ss_col, NULL);
+      rayTrace(ray, 0, &ss_col, NULL, NULL);
       free(ray);
       col.R += ss_col.R;
       col.G += ss_col.G;
@@ -540,7 +586,7 @@ int main(int argc, char *argv[])
     d.pw = 0;
     ray = newRay(&pc, &d);
     col = background;
-    rayTrace(ray, 0, &col, NULL);
+    rayTrace(ray, 0, &col, NULL, NULL);
     free(ray);
    }
    

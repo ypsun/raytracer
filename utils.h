@@ -144,6 +144,12 @@ inline void scale(struct point3D *p, double scale) {
  p->pz *= scale;
 }
 
+inline void addEpsilon(struct ray3D *ray) {
+ struct point3D e = ray->d;
+ scale(&e, EPSILON);
+ addVectors(&e, &ray->p0); // Add a tiny vector for precision
+}
+
 // Functions to instantiate primitives
 struct point3D *newPoint(double px, double py, double pz);
 struct pointLS *newPLS(struct point3D *p0, double r, double g, double b);
