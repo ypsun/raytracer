@@ -25,6 +25,8 @@
 #ifndef __utils_header
 #define __utils_header
 
+#define EPSILON 0.0000001
+
 // Functions to apply transformations to objects.
 // If you add any transformations to the list below, document them carefully
 inline void matMult(double A[4][4], double B[4][4])
@@ -134,6 +136,12 @@ inline double length(struct point3D *a)
 {
  // Compute and return the length of a vector
  return(sqrt((a->px*a->px)+(a->py*a->py)+(a->pz*a->pz)));
+}
+
+inline void scale(struct point3D *p, double scale) {
+ p->px *= scale;
+ p->py *= scale;
+ p->pz *= scale;
 }
 
 // Functions to instantiate primitives

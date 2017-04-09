@@ -133,14 +133,20 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // - The colour for this ray (using the col pointer)
  //
 
- struct colourRGB tmp_col;	// Accumulator for colour components
+ struct colourRGB local_col;
+ struct colourRGB spec_col;
+ struct colourRGB refract_col;
  double R,G,B;			// Colour for the object in R G and B
 
- // This will hold the colour as we process all the components of
- // the Phong illumination model
- tmp_col.R=0;
- tmp_col.G=0;
- tmp_col.B=0;
+ local_col.R=0;
+ local_col.G=0;
+ local_col.B=0;
+ spec_col.R=0;
+ spec_col.G=0;
+ spec_col.B=0;
+ refract_col.R=0;
+ refract_col.G=0;
+ refract_col.B=0;
 
  if (obj->texImg==NULL)		// Not textured, use object colour
  {
@@ -183,9 +189,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   l_count++;
   
   // Ambient component
-  tmp_col.R += R * l->col.R * obj->alb.ra;
-  tmp_col.G += G * l->col.G * obj->alb.ra;
-  tmp_col.B += B * l->col.B * obj->alb.ra;
+  local_col.R += R * l->col.R * obj->alb.ra;
+  local_col.G += G * l->col.G * obj->alb.ra;
+  local_col.B += B * l->col.B * obj->alb.ra;
   
   // Check shadow
   struct ray3D ray_light; // Ray from intersection point to light source
@@ -202,25 +208,23 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
    // Diffuse component
    //printf("%.2f,%.2f,%.2f\n", n->px, n->py, n->pz);
    //printf("%.2f\n", dot(n, &ray_light.d));
-   tmp_col.R += R * l->col.R * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
-   tmp_col.G += G * l->col.G * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
-   tmp_col.B += B * l->col.B * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
+   local_col.R += R * l->col.R * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
+   local_col.G += G * l->col.G * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
+   local_col.B += B * l->col.B * obj->alb.rd * std::max(0.0, dot(n, &ray_light.d));
    
    // Specular component
    struct point3D m = *n;
    double f = 2.0 * dot(&ray_light.d, n);
-   m.px *= f;
-   m.py *= f;
-   m.pz *= f;
+   scale(&m, f);
    subVectors(&ray_light.d, &m);
    m.pw = 0;
    normalize(&m);
    struct point3D d = ray->d;
    normalize(&d);
    d.pw = 0;
-   tmp_col.R += l->col.R * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
-   tmp_col.G += l->col.G * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
-   tmp_col.B += l->col.B * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
+   local_col.R += l->col.R * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
+   local_col.G += l->col.G * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
+   local_col.B += l->col.B * obj->alb.rs * pow(std::max(0.0, -dot(&d, &m)), obj->shinyness);
   }
   
   l = l->next;
@@ -228,6 +232,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  
  if (depth < MAX_DEPTH) {
   // Global (secondary) component
+  // Specular
   struct point3D m_s = *n;
   double f = -2.0 * dot(&ray->d, n);
   m_s.px *= f;
@@ -235,13 +240,16 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   m_s.pz *= f;
   addVectors(&ray->d, &m_s);
   m_s.pw = 0;
-  rayTrace(newRay(p, &m_s), depth + 1, col, obj);
+  rayTrace(newRay(p, &m_s), depth + 1, &spec_col, obj);
+  
+  // Refractive
+  
  }
 
  // Be sure to update 'col' with the final colour computed here!
- col->R = std::min(obj->alb.rg * col->R + tmp_col.R / l_count, 1.0);
- col->B = std::min(obj->alb.rg * col->B + tmp_col.B / l_count, 1.0);
- col->G = std::min(obj->alb.rg * col->G + tmp_col.G / l_count, 1.0);
+ col->R = std::min(obj->alb.rg * spec_col.R + local_col.R / l_count, 1.0);
+ col->B = std::min(obj->alb.rg * spec_col.B + local_col.B / l_count, 1.0);
+ col->G = std::min(obj->alb.rg * spec_col.G + local_col.G / l_count, 1.0);
  
  return;
 
