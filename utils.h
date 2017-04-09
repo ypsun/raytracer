@@ -148,6 +148,8 @@ inline void addEpsilon(struct ray3D *ray) {
  struct point3D e = ray->d;
  scale(&e, EPSILON);
  addVectors(&e, &ray->p0); // Add a tiny vector for precision
+ ray->p0.pw = 1;
+ ray->d.pw = 0;
 }
 
 // Functions to instantiate primitives

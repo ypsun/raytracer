@@ -74,30 +74,19 @@ void buildScene(void)
 						// meaningless since alpha=1
  Scale(o,6,6,1);				// Do a few transforms...
  RotateZ(o,PI/1.20);
- RotateX(o,PI/2.25);
+ RotateX(o,PI*0.25);
  Translate(o,0,-3,10);
  invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
 						// and store the inverse
 						// transform for this object!
  insertObject(o,&object_list);			// Insert into object list
- //loadTexture(o,"universe.ppm");
+ loadTexture(o,"checkered.ppm");
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,0.5,1.5,24);
- Scale(o,.75,.5,1.5);
- RotateY(o,PI/2);
- Translate(o,-1.45,1.1,3.5);
+ o=newSphere(.05,.05,.05,.75,.2,.2,.2,0.5,1.5,24);
+ Translate(o, 0,-2,5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
- //loadTexture(o,"venus.ppm");
-
- o=newSphere(.05,.95,.95,.75,.75,.95,.55,0.5,0.5,24);
- Scale(o,.5,2.0,1.0);
- RotateZ(o,PI/1.5);
- Translate(o,1.75,1.25,5.0);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
- //loadTexture(o,"planet.ppm");
 
  // Insert a single point light source.
  p.px=0;
@@ -326,7 +315,6 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  if (depth < MAX_DEPTH) {
   // Global (secondary) component
   // Specular
-  
   struct point3D m_s = *n;
   double f = -2.0 * dot(&ray->d, n);
   scale(&m_s, f);
@@ -337,14 +325,12 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   rayTrace(r, depth + 1, &spec_col, NULL, prevRefrObj);
   free(r);
   
-  struct point3D x = *n;
-  if (obj != NULL && obj == prevRefrObj) {
-   scale(&x, -1);
-  }
-  
-  /*
   // Refractive
   if (obj->alpha < 1) {
+   struct point3D x = *n;
+   if (obj != NULL && obj == prevRefrObj) {
+    scale(&x, -1);
+   }
    struct object3D *o;
    double r_index_from, r_index_to;
    if (prevRefrObj == NULL) {
@@ -388,14 +374,14 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     rayTrace(r, depth + 1, &refract_col, NULL, o);
     free(r);
    }
-  }*/
+  }
  }
 
  // Be sure to update 'col' with the final colour computed here!
  //printf("refract_col:%f,%f,%f\n",refract_col.R,refract_col.G,refract_col.B);
- col->R = std::min(obj->alb.rg * (spec_col.R + (1.0-obj->alpha)*refract_col.R) + local_col.R / l_count, 1.0);
- col->B = std::min(obj->alb.rg * (spec_col.B + (1.0-obj->alpha)*refract_col.G) + local_col.B / l_count, 1.0);
- col->G = std::min(obj->alb.rg * (spec_col.G + (1.0-obj->alpha)*refract_col.B) + local_col.G / l_count, 1.0);
+ col->R = std::min(obj->alb.rg * (spec_col.R + refract_col.R) + local_col.R / l_count, 1.0);
+ col->B = std::min(obj->alb.rg * (spec_col.B + refract_col.G) + local_col.B / l_count, 1.0);
+ col->G = std::min(obj->alb.rg * (spec_col.G + refract_col.B) + local_col.G / l_count, 1.0);
  
  return;
 
