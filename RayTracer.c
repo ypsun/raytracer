@@ -80,6 +80,7 @@ void buildScene(void)
 						// and store the inverse
 						// transform for this object!
  insertObject(o,&object_list);			// Insert into object list
+ loadTexture(o,"universe.ppm");
 
  // Let's add a couple spheres
  o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,24);
@@ -88,6 +89,7 @@ void buildScene(void)
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
+ loadTexture(o,"venus.ppm");
 
  o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,24);
  Scale(o,.5,2.0,1.0);
@@ -95,6 +97,7 @@ void buildScene(void)
  Translate(o,1.75,1.25,5.0);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
+ loadTexture(o,"planet.ppm");
 
  // Insert a single point light source.
  p.px=0;
@@ -102,7 +105,7 @@ void buildScene(void)
  p.pz=-5.5;
  p.pw=1;
  l=newPLS(&p,.95,.95,.95);
- //insertPLS(l,&light_list);
+ insertPLS(l,&light_list);
  
  addAreaLight(2, 2, 0, -1, 1, 0, 15.5, -5.5, 10, 10, .95, .95, .95, &object_list, &light_list);
 
@@ -150,6 +153,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   // Get object colour from the texture given the texture coordinates (a,b), and the texturing function
   // for the object. Note that we will use textures also for Photon Mapping.
   obj->textureMap(obj->texImg,a,b,&R,&G,&B);
+  //printf("%f,%f,%f\n", R,G,B);
  }
 
  //////////////////////////////////////////////////////////////
@@ -164,7 +168,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   col->B = B;
   return;
  }
- 
+
  struct point3D p_temp;
  struct point3D n_temp;
  double lambda_temp;
@@ -322,6 +326,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  ///////////////////////////////////////////////////////
  findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
  if (lambda > 0) {
+  //printf("a,b:%f,%f\n",a,b);
   rtShade(obj, &p, &n, ray, depth, a, b, col);
  }
 }

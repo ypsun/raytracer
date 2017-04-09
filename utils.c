@@ -221,6 +221,11 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
    normal.pz = -1;
    normal.pw = 0;
    normalTransform(&normal, n, plane);
+   
+   // Calculate a, b
+   //printf("%.2f,%.2f\n",p_prime.px,p_prime.py);
+   *a = (p_prime.px + 1.0) / 2.0;
+   *b = (p_prime.py + 1.0) / 2.0;
   } else {
    // Transformed intersection point is out of boundaries of the canonical plane.
    *lambda = -1;
@@ -273,6 +278,12 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
  normal.pw = 0;
  normalTransform(&normal, n, sphere);
  //printf("%.2f,%.2f,%.2f,%.2f\n", n->px, n->py, n->pz, n->pw);
+ 
+ // Calculate a, b
+ double theta = acos(p_prime.pz);
+ double phi = atan2(p_prime.py, p_prime.px);
+ *a = fmod(phi,2*PI) / (2*PI);
+ *b = (PI-theta)/PI;
 }
 
 void loadTexture(struct object3D *o, const char *filename)
@@ -287,7 +298,15 @@ void loadTexture(struct object3D *o, const char *filename)
    free(o->texImg);
   }
   o->texImg=readPPMimage(filename);	// Allocate new texture
+  //imageOutput(o->texImg, "test.ppm");
  }
+}
+
+void getRgb(struct image *img, int i, int j, double *R, double *G, double *B) {
+ *R = ((double *)img->rgbdata)[j * img->sx * 3 + i * 3];
+ *G = ((double *)img->rgbdata)[j * img->sx * 3 + i * 3 + 1];
+ *B = ((double *)img->rgbdata)[j * img->sx * 3 + i * 3 + 2];
+ //printf("%f,%f,%f\n",*R,*G,*B);
 }
 
 void texMap(struct image *img, double a, double b, double *R, double *G, double *B)
@@ -312,10 +331,34 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // coordinates. Your code should use bi-linear
  // interpolation to obtain the texture colour.
  //////////////////////////////////////////////////
+ int i = floor(a * (img->sx - 1));
+ int j = floor(b * (img->sy - 1));
+ double u = a * (img->sx - 1) - (double)i;
+ double v = b * (img->sy - 1) - (double)j;
+ 
+ double R1,R2,R3,R4,G1,G2,G3,G4,B1,B2,B3,B4;
+ R1=R2=R3=R4=G1=G2=G3=G4=B1=B2=B3=B4=0;
+ 
+ getRgb(img, i, j, &R1, &G1, &B1);
+ if (i+1<img->sx) {
+  getRgb(img, i+1, j, &R2, &G2, &B2);
+ }
+ if (j+1<img->sy) {
+  getRgb(img, i, j+1, &R3, &G3, &B3);
+ }
+ if (i+1<img->sx && j+1<img->sy) {
+  getRgb(img, i+1, j+1, &R4, &G4, &B4);
+ }
 
- *(R)=0;	// Returns black - delete this and
- *(G)=0;	// replace with your code to compute
- *(B)=0;	// texture colour at (a,b)
+ //*R = (1.0-u)*(1.0-v)*R1 + u*(1.0-v)*R2 + (1.0-u)*v*R3 + u*v*R4;
+ //*G = (1.0-u)*(1.0-v)*G1 + u*(1.0-v)*G2 + (1.0-u)*v*G3 + u*v*G4;
+ //*B = (1.0-u)*(1.0-v)*B1 + u*(1.0-v)*B2 + (1.0-u)*v*B3 + u*v*B4;
+ //printf("%f,%f,%f\n",*R,*G,*B);
+ 
+ *R = R1;
+ *G = G1;
+ *B = B1;
+ 
  return;
 }
 
@@ -831,7 +874,10 @@ struct image *readPPMimage(const char *filename)
   fclose(f);
 
   // Conversion to floating point
-  for (i=0; i<sizx*sizy*3; i++) *(fRGB+i)=((double)*(tmp+i))/255.0;
+  for (i=0; i<sizx*sizy*3; i++) {
+   *(fRGB+i)=((double)*(tmp+i))/255.0;
+   //printf("%f\n",*(fRGB+i));
+  }
   free(tmp);
   im->rgbdata=(void *)fRGB;
 
