@@ -163,21 +163,21 @@ void buildScene_A3(void)
  loadTexture(o,"universe.ppm");
  
  // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,0.5,1.5,24);
+ o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,24);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
- Translate(o,-1.45,-2,3.5);
+ Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
- //loadTexture(o,"venus.ppm");
+ loadTexture(o,"venus.ppm");
  
- o=newSphere(.05,.95,.95,.75,.75,.95,.55,0.5,0.5,24);
+ o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,24);
  Scale(o,.5,2.0,1.0);
  RotateZ(o,PI/1.5);
- Translate(o,1.75,-2,5.0);
+ Translate(o,1.75,1.25,5.0);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
- //loadTexture(o,"planet.ppm");
+ loadTexture(o,"planet.ppm");
  
  // Insert a single point light source.
  p.px=0;
@@ -530,7 +530,7 @@ int main(int argc, char *argv[])
  //        for Assignment 4 you need to create your own
  //        *interesting* scene.
  ///////////////////////////////////////////////////
- buildScene();		// Create a scene. This defines all the
+ buildScene_A3();		// Create a scene. This defines all the
 			// objects in the world of the raytracer
 
  //////////////////////////////////////////
