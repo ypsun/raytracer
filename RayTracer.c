@@ -679,7 +679,7 @@ int main(int argc, char *argv[])
     col.R /= SS_SIZE * SS_SIZE;
     col.G /= SS_SIZE * SS_SIZE;
     col.B /= SS_SIZE * SS_SIZE;
-   } else {
+   } else { // no anti-alias
     pc.px = pixel_center_x;
     pc.py = pixel_center_y;
     pc.pz = cam->f;
